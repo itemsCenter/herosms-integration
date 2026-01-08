@@ -11,7 +11,7 @@ import {
   LocalStorage,
   Clipboard,
 } from "@raycast/api";
-import { getPrices, getNumber, getServicesList, getCountries, getBalance } from "./api";
+import { getPrices, getNumber, getBalance } from "./api";
 
 // Import recently used functions from get-phone-number
 const RECENTLY_USED_KEY = "recently_used_service_countries";
@@ -25,7 +25,7 @@ async function saveRecentlyUsedCountry(serviceCode: string, countryId: number): 
   try {
     const recentlyUsed = await LocalStorage.getItem(RECENTLY_USED_KEY);
     let entries: RecentlyUsedEntry[] = [];
-    
+
     if (recentlyUsed) {
       try {
         const parsed = JSON.parse(recentlyUsed as string);
@@ -87,9 +87,7 @@ async function saveFavoriteServiceCountries(favorites: FavoriteServiceCountry[])
 
 async function removeFavoriteServiceCountry(serviceCode: string, countryId: number): Promise<void> {
   const favorites = await getFavoriteServiceCountries();
-  const filtered = favorites.filter(
-    (fav) => !(fav.serviceCode === serviceCode && fav.countryId === countryId),
-  );
+  const filtered = favorites.filter((fav) => !(fav.serviceCode === serviceCode && fav.countryId === countryId));
   await saveFavoriteServiceCountries(filtered);
 }
 
@@ -107,12 +105,10 @@ export default function FavoriteServices() {
   const [prices, setPrices] = useState<Record<string, Record<string, { cost: number; count: number }>>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [balance, setBalance] = useState<number | null>(null);
-  const [balanceLoading, setBalanceLoading] = useState(true);
 
   useEffect(() => {
     async function fetchBalance() {
       try {
-        setBalanceLoading(true);
         const preferences = getPreferenceValues<Preferences>();
         if (!preferences.apiKey) {
           return;
@@ -123,8 +119,6 @@ export default function FavoriteServices() {
       } catch (error) {
         console.error("Failed to fetch balance:", error);
         setBalance(null);
-      } finally {
-        setBalanceLoading(false);
       }
     }
 
@@ -251,9 +245,7 @@ export default function FavoriteServices() {
 
   return (
     <List isLoading={isLoading}>
-      {balance !== null && (
-        <List.Section title={`💰 Balance: ${balanceDisplay}`} key="balance-section" />
-      )}
+      {balance !== null && <List.Section title={`💰 Balance: ${balanceDisplay}`} key="balance-section" />}
       {favorites.map((favorite) => {
         const countryIdStr = String(favorite.countryId);
         const countryPrices = prices[countryIdStr] || prices[favorite.countryId];
@@ -303,4 +295,3 @@ export default function FavoriteServices() {
 // Export functions for use in other files
 export { getFavoriteServiceCountries, saveFavoriteServiceCountries, FAVORITE_SERVICE_COUNTRIES_KEY };
 export type { FavoriteServiceCountry };
-

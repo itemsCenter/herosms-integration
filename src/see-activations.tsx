@@ -10,7 +10,6 @@ import {
   getPreferenceValues,
   Clipboard,
   popToRoot,
-  openExtensionPreferences,
   LocalStorage,
 } from "@raycast/api";
 import {
@@ -22,11 +21,28 @@ import {
   getCountries,
   getBalance,
 } from "./api";
-import { parsePhoneNumber, AsYouType } from "libphonenumber-js";
+import { parsePhoneNumber, AsYouType, type CountryCode } from "libphonenumber-js";
 import { getRemainingTimeFromLocal } from "./utils";
 
 interface Preferences {
   apiKey: string;
+}
+
+interface StatusDetails {
+  verificationType?: number;
+  sms?: {
+    dateTime: string;
+    code: string;
+    text: string;
+  };
+  call?: {
+    from: string;
+    text: string;
+    code: string;
+    dateTime: string;
+    url: string;
+    parsingCount: number;
+  };
 }
 
 function parseBalance(balanceString: string): number {
@@ -39,9 +55,10 @@ function parseBalance(balanceString: string): number {
 }
 
 export default function SeeActivations() {
-  const [activations, setActivations] = useState<(Activation & { statusDetails?: any })[]>([]);
+  const [activations, setActivations] = useState<
+    (Activation & { statusDetails?: StatusDetails | null; localCreatedAt?: number })[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [servicesMap, setServicesMap] = useState<Record<string, string>>({});
@@ -71,7 +88,7 @@ export default function SeeActivations() {
             // Check if we have local storage data for this activation
             const activationKey = `activation_${activation.activationId}`;
             const localData = await LocalStorage.getItem(activationKey);
-            let localCreatedAt: number | null = null;
+            let localCreatedAt: number | undefined = undefined;
 
             if (localData) {
               try {
@@ -91,7 +108,7 @@ export default function SeeActivations() {
             // Check for local storage even if status fetch fails
             const activationKey = `activation_${activation.activationId}`;
             const localData = await LocalStorage.getItem(activationKey);
-            let localCreatedAt: number | null = null;
+            let localCreatedAt: number | undefined = undefined;
 
             if (localData) {
               try {
@@ -210,7 +227,7 @@ export default function SeeActivations() {
     };
   }, []);
 
-  const handleCopyCode = async (activation: Activation & { statusDetails?: any }) => {
+  const handleCopyCode = async (activation: Activation & { statusDetails?: StatusDetails | null }) => {
     const code = activation.smsCode || activation.statusDetails?.sms?.code;
     if (code) {
       // Remove brackets if present
@@ -226,7 +243,7 @@ export default function SeeActivations() {
     }
   };
 
-  const handleCancelActivation = async (activation: Activation & { statusDetails?: any }) => {
+  const handleCancelActivation = async (activation: Activation & { statusDetails?: StatusDetails | null }) => {
     try {
       const toast = await showToast({
         style: Toast.Style.Animated,
@@ -385,10 +402,8 @@ export default function SeeActivations() {
   const balanceDisplay = balance !== null ? `$${balance.toFixed(2)}` : "Loading...";
 
   return (
-    <List isLoading={isLoading} onSelectionChange={setSelectedId}>
-      {balance !== null && (
-        <List.Section title={`💰 Balance: ${balanceDisplay}`} key="balance-section" />
-      )}
+    <List isLoading={isLoading}>
+      {balance !== null && <List.Section title={`💰 Balance: ${balanceDisplay}`} key="balance-section" />}
       {activations.map((activation) => {
         const code = activation.smsCode || activation.statusDetails?.sms?.code;
         // Check if code actually exists and is not null/empty
@@ -409,7 +424,7 @@ export default function SeeActivations() {
         // Get full country name in English, fallback to countryName or code
         const countryName = countriesMap[activation.countryCode] || activation.countryName || activation.countryCode;
         // Debug logging
-        const localCreatedAt = (activation as any).localCreatedAt;
+        const localCreatedAt = activation.localCreatedAt;
         console.log(`[DEBUG] Rendering activation ${activation.activationId}:`, {
           localCreatedAt,
           localCreatedAtDate: localCreatedAt ? new Date(localCreatedAt).toISOString() : null,
@@ -498,7 +513,7 @@ export default function SeeActivations() {
                       onAction={() => handleCopyCode(activation)}
                     />
                     <Action
-                      title="Copy Code"
+                      title="Copy to Clipboard"
                       icon={Icon.Clipboard}
                       shortcut={{ modifiers: ["cmd"], key: "c" }}
                       onAction={async () => {
@@ -539,7 +554,7 @@ export default function SeeActivations() {
                       onAction={() => handleCancelActivation(activation)}
                     />
                     <Action
-                      title="Copy Code (when available)"
+                      title="Copy Code When Available"
                       icon={Icon.Clipboard}
                       shortcut={{ modifiers: ["cmd"], key: "c" }}
                       onAction={async () => {
@@ -608,7 +623,7 @@ function formatPhoneNumber(phoneNumber: string, countryCode?: string): string {
         try {
           // If number doesn't start with +, try parsing with country code
           const numberToParse = cleanNumber.startsWith("+") ? cleanNumber : `+${cleanNumber}`;
-          const phone = parsePhoneNumber(numberToParse, isoCode as any);
+          const phone = parsePhoneNumber(numberToParse, isoCode as CountryCode);
           if (phone && phone.isValid()) {
             return phone.formatInternational();
           }

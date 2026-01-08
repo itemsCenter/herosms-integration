@@ -13,12 +13,7 @@ import {
   Clipboard,
 } from "@raycast/api";
 import { getServicesList, getCountries, getPrices, getNumber, getBalance, Service, Country, PriceInfo } from "./api";
-import {
-  getFavoriteServiceCountries,
-  saveFavoriteServiceCountries,
-  FAVORITE_SERVICE_COUNTRIES_KEY,
-  FavoriteServiceCountry,
-} from "./favorite-services";
+import { getFavoriteServiceCountries, saveFavoriteServiceCountries, FavoriteServiceCountry } from "./favorite-services";
 
 interface Preferences {
   apiKey: string;
@@ -116,8 +111,6 @@ export default function GetPhoneNumber() {
   const [favoriteServices, setFavoriteServices] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
-  const [balance, setBalance] = useState<number | null>(null);
-  const [balanceLoading, setBalanceLoading] = useState(true);
   const { push } = useNavigation();
 
   useEffect(() => {
@@ -126,31 +119,6 @@ export default function GetPhoneNumber() {
       setFavoriteServices(favorites);
     }
     loadFavorites();
-  }, []);
-
-  useEffect(() => {
-    async function fetchBalance() {
-      try {
-        setBalanceLoading(true);
-        const preferences = getPreferenceValues<Preferences>();
-        if (!preferences.apiKey) {
-          return;
-        }
-        const balanceString = await getBalance();
-        const balanceAmount = parseBalance(balanceString);
-        setBalance(balanceAmount);
-      } catch (error) {
-        console.error("Failed to fetch balance:", error);
-        setBalance(null);
-      } finally {
-        setBalanceLoading(false);
-      }
-    }
-
-    fetchBalance();
-    // Refresh balance every 30 seconds
-    const interval = setInterval(fetchBalance, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -203,8 +171,6 @@ export default function GetPhoneNumber() {
   // Separate favorites from regular services
   const favoriteServicesList = filteredServices.filter((service) => favoriteServices.has(service.code));
   const regularServicesList = filteredServices.filter((service) => !favoriteServices.has(service.code));
-
-  const balanceDisplay = balance !== null ? `$${balance.toFixed(2)}` : "Loading...";
 
   return (
     <List isLoading={isLoading} searchBarPlaceholder="Search services..." onSearchTextChange={setSearchText} throttle>
@@ -449,7 +415,7 @@ function CountrySelection({ service }: { service: Service }) {
               title="Request Number"
               icon={Icon.Phone}
               shortcut={{ modifiers: [], key: "enter" }}
-              onAction={() => requestNumber(service.code, country.id, price)}
+              onAction={() => requestNumber(service.code, country.id)}
             />
             <Action
               title="Add to Favorite Services"
@@ -485,7 +451,7 @@ function CountrySelection({ service }: { service: Service }) {
   );
 }
 
-async function requestNumber(service: string, country: number, expectedPrice: number) {
+async function requestNumber(service: string, country: number) {
   try {
     const toast = await showToast({
       style: Toast.Style.Animated,

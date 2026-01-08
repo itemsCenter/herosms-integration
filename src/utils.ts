@@ -8,7 +8,7 @@ export function getRemainingTimeFromLocal(localCreatedAt: number | null): {
     localCreatedAt,
     localCreatedAtDate: localCreatedAt ? new Date(localCreatedAt).toISOString() : null,
   });
-  
+
   if (!localCreatedAt) {
     console.log(`[DEBUG] getRemainingTimeFromLocal: No localCreatedAt, returning expired`);
     return { minutes: 0, seconds: 0, expired: true };
@@ -50,4 +50,3 @@ export function getRemainingTimeFromLocal(localCreatedAt: number | null): {
   console.log(`[DEBUG] getRemainingTimeFromLocal result:`, result);
   return result;
 }
-

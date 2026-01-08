@@ -14,7 +14,7 @@ function getApiKey(): string {
   return preferences.apiKey;
 }
 
-async function apiCall(action: string, params: Record<string, string | number | boolean> = {}): Promise<any> {
+async function apiCall(action: string, params: Record<string, string | number | boolean> = {}): Promise<unknown> {
   const apiKey = getApiKey();
 
   // Build query string manually to avoid URLSearchParams type issues
@@ -53,7 +53,7 @@ async function apiCall(action: string, params: Record<string, string | number | 
       }
 
       return parsed;
-    } catch (parseError) {
+    } catch {
       // If it's not JSON and looks like an error string, throw it
       if (text.startsWith("BAD_") || text.startsWith("NO_") || text.startsWith("ERROR_")) {
         throw new Error(text);
@@ -253,7 +253,7 @@ export async function getActiveActivations(start: number = 0, limit: number = 10
       // activeActivations is an object with a 'rows' array
       if (Array.isArray(result.activeActivations.rows)) {
         // Map the rows to match the Activation interface
-        return result.activeActivations.rows.map((row: any) => ({
+        return result.activeActivations.rows.map((row: Record<string, unknown>) => ({
           activationId: String(row.id || row.activationId || ""),
           serviceCode: row.service || row.serviceCode || "",
           phoneNumber: row.phone || row.phoneNumber || "",
