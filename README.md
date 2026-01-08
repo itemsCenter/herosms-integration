@@ -50,7 +50,7 @@ A Raycast extension for managing SMS activations through the Hero-SMS.com API. G
 1. **Clone or download this repository**
 
    ```bash
-   git clone https://github.com/yourusername/hero-sms-com-integration.git
+   git clone https://github.com/itemsCenter/herosms-integration.git
    cd hero-sms-com-integration
    ```
 
